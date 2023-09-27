@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 import requests
 from dotenv import load_dotenv
@@ -7,17 +8,23 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
 
 load_dotenv()
+Path('data/').mkdir(exist_ok=True)
 
 
 async def rates(update, context):
     chat = update.effective_chat
+    url_template = ('https://cdn.jsdelivr.net/gh/fawazahmed0/'
+                    + 'currency-api@1/latest/currencies/{}/{}.json')
     in_progress = await context.bot.send_message(
         chat_id=chat.id,
         text=('Загружаю данные...\n□□□□□□□'),
     )
     rates = {}
 
-    url = 'https://api.exchangerate.host/convert?from=USD&to=RUB'
+    url = url_template.format('usd', 'rub')
+    response = requests.get(url)
+
+    # Проверяем доступ к серверу
     try:
         response = requests.get(url)
     except Exception:
@@ -31,6 +38,7 @@ async def rates(update, context):
         )
         return
 
+    # Проверяем status code
     if response.status_code != 200:
         await context.bot.delete_message(
             chat_id=chat.id,
@@ -44,7 +52,9 @@ async def rates(update, context):
         return
 
     data = response.json()
-    if 'result' not in data.keys():
+
+    # Проверяем, что поля соответстуют ожиданию
+    if 'rub' not in data.keys():
         await context.bot.delete_message(
             chat_id=chat.id,
             message_id=in_progress.message_id,
@@ -55,68 +65,82 @@ async def rates(update, context):
         )
         return
 
+    # Проверяем наличие кэшированных данных
+    if os.path.isfile(f'data/{data["date"]}.txt'):
+        await context.bot.delete_message(
+            chat_id=chat.id,
+            message_id=in_progress.message_id,
+        )
+        with open(f'data/{data["date"]}.txt', 'r') as file:
+            await context.bot.send_message(
+                chat_id=chat.id,
+                text=(file.read()),
+            )
+        return
+
+    # Если данных нет, то загружаем их
     rates['Дата'] = str(data['date']) + '\n'
-    rates['Доллар -> Рубль'] = data['result']
+    rates['Доллар -> Рубль'] = data['rub']
     await context.bot.edit_message_text(
         text=('Загружаю данные...\n■□□□□□□'),
         chat_id=chat.id,
         message_id=in_progress.message_id,
     )
 
-    url = 'https://api.exchangerate.host/convert?from=EUR&to=RUB'
+    url = url_template.format('eur', 'rub')
     response = requests.get(url)
     data = response.json()
-    rates['Евро -> Рубль'] = str(data['result']) + '\n'
+    rates['Евро -> Рубль'] = str(data['rub']) + '\n'
     await context.bot.edit_message_text(
         text=('Загружаю данные...\n■■□□□□□'),
         chat_id=chat.id,
         message_id=in_progress.message_id,
     )
 
-    url = 'https://api.exchangerate.host/convert?from=EUR&to=USD'
+    url = url_template.format('eur', 'usd')
     response = requests.get(url)
     data = response.json()
-    rates['Евро -> Доллар'] = str(data['result']) + '\n'
+    rates['Евро -> Доллар'] = str(data['usd']) + '\n'
     await context.bot.edit_message_text(
         text=('Загружаю данные...\n■■■□□□□'),
         chat_id=chat.id,
         message_id=in_progress.message_id,
     )
 
-    url = 'https://api.exchangerate.host/convert?from=AMD&to=RUB'
+    url = url_template.format('amd', 'rub')
     response = requests.get(url)
     data = response.json()
-    rates['Драм -> Рубль'] = data['result']
+    rates['Драм -> Рубль'] = data['rub']
     await context.bot.edit_message_text(
         text=('Загружаю данные...\n■■■■□□□'),
         chat_id=chat.id,
         message_id=in_progress.message_id,
     )
 
-    url = 'https://api.exchangerate.host/convert?from=RUB&to=AMD'
+    url = url_template.format('rub', 'amd')
     response = requests.get(url)
     data = response.json()
-    rates['Рубль -> Драм'] = str(data['result']) + '\n'
+    rates['Рубль -> Драм'] = str(data['amd']) + '\n'
     await context.bot.edit_message_text(
         text=('Загружаю данные...\n■■■■■□□'),
         chat_id=chat.id,
         message_id=in_progress.message_id,
     )
 
-    url = 'https://api.exchangerate.host/convert?from=EUR&to=AMD'
+    url = url_template.format('eur', 'amd')
     response = requests.get(url)
     data = response.json()
-    rates['Евро -> Драм'] = data['result']
+    rates['Евро -> Драм'] = data['amd']
     await context.bot.edit_message_text(
         text=('Загружаю данные...\n■■■■■■□'),
         chat_id=chat.id,
         message_id=in_progress.message_id,
     )
 
-    url = 'https://api.exchangerate.host/convert?from=USD&to=AMD'
+    url = url_template.format('usd', 'amd')
     response = requests.get(url)
     data = response.json()
-    rates['Доллар -> Драм'] = data['result']
+    rates['Доллар -> Драм'] = data['amd']
     await context.bot.edit_message_text(
         text=('Загружаю данные...\n■■■■■■■'),
         chat_id=chat.id,
@@ -134,6 +158,8 @@ async def rates(update, context):
         chat_id=chat.id,
         text=(rates_text),
     )
+    with open(f'data/{data["date"]}.txt', 'w') as file:
+        file.write(rates_text)
 
 
 async def wake_up(update, context):
