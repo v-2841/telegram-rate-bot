@@ -1,5 +1,8 @@
 import asyncio
+import logging
 import os
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
 
 from aiohttp import ClientSession
 from dotenv import load_dotenv
@@ -8,6 +11,15 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
 
 load_dotenv()
+Path('logs/').mkdir(exist_ok=True)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s, %(name)s, %(levelname)s, %(funcName)s, %(message)s',
+    handlers=[RotatingFileHandler(
+        'logs/main.log', maxBytes=100000, backupCount=10)],
+)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logger = logging.getLogger(__name__)
 pairs = [
     ['eur', 'usd'],
     ['usd', 'rub'],
@@ -53,6 +65,7 @@ async def rates(update, context):
         chat_id=chat.id,
         text=(rates_text),
     )
+    logger.info(f'Пользователь {chat.id} запросил курс')
 
 
 async def wake_up(update, context):
@@ -65,14 +78,17 @@ async def wake_up(update, context):
         text=('Привет!'),
         reply_markup=buttons,
     )
+    logger.info(f'Пользователь {chat.id} включил бота')
 
 
 async def post_init(application: Application) -> None:
     application.bot_data['client'] = ClientSession()
+    logger.info('Клиент ClientSession запущен')
 
 
 async def post_shutdown(application: Application) -> None:
     await application.bot_data['client'].close()
+    logger.info('Клиент ClientSession остановлен')
 
 
 if __name__ == '__main__':
