@@ -3,3 +3,5 @@ python-telegram-bot==20.5
 aiohttp==3.8.5
 peewee==3.16.3
 psycopg2-binary==2.9.7
+peewee-async==0.9.1
+aiopg==1.4.0

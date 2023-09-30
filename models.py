@@ -2,8 +2,8 @@ import datetime
 import os
 
 from dotenv import load_dotenv
-from peewee import (CharField, DateTimeField, ForeignKeyField, Model,
-                    PostgresqlDatabase, TextField)
+from peewee import (DateTimeField, ForeignKeyField, Model, PostgresqlDatabase,
+                    TextField)
 
 
 load_dotenv()
@@ -18,9 +18,6 @@ db = PostgresqlDatabase(
 
 
 class User(Model):
-    username = CharField(
-        max_length=32,
-    )
     reg_date = DateTimeField(
         default=datetime.datetime.now,
         verbose_name='Дата регистрации',
@@ -28,6 +25,11 @@ class User(Model):
 
     class Meta:
         database = db
+
+    def delete_instance(self, *args, **kwargs):
+        if self.id == 0:
+            raise Exception('Нельзя удалить аккаунт бота')
+        return super().delete_instance(*args, **kwargs)
 
 
 class Message(Model):
@@ -46,6 +48,10 @@ class Message(Model):
     text = TextField(
         verbose_name='Текст сообщения',
     )
+    datetime = DateTimeField(
+        default=datetime.datetime.now,
+        verbose_name='Дата и время',
+    )
 
     class Meta:
         database = db
@@ -54,11 +60,5 @@ class Message(Model):
 if __name__ == '__main__':
     db.connect()
     db.create_tables([Message, User])
-    User.create(id=0, username='bot')
-    User.create(id=1, username='test')
-    Message.create(
-        from_user=0,
-        to_user=1,
-        text='Тестируем Большие русские буквы',
-    )
+    User.create(id=0)
     db.close()
