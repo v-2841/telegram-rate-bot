@@ -10,6 +10,7 @@ from peewee_async import Manager, PostgresqlDatabase
 from telegram import ReplyKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
+import config
 from models import Message, User
 
 
@@ -33,37 +34,22 @@ logging.basicConfig(
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
-pairs = [
-    ['eur', 'usd'],
-    ['usd', 'rub'],
-    ['eur', 'rub'],
-    ['amd', 'rub'],
-    ['rub', 'amd'],
-    ['usd', 'amd'],
-    ['eur', 'amd'],
-]
-translation = {
-    'usd': 'Доллар',
-    'eur': 'Евро',
-    'rub': 'Рубль',
-    'amd': 'Драм',
-}
-url_template = ('https://cdn.jsdelivr.net/gh/fawazahmed0/'
-                + 'currency-api@1/latest/currencies/{}/{}.json')
+pairs = config.pairs
+url_template = config.url_template
+rates_message = config.rates_message
 
 
 async def get_date(client):
     url = url_template.format(*pairs[0])
     async with client.get(url) as response:
         data = await response.json()
-        return f'Дата: {data["date"]}'
+        return {'date': data["date"]}
 
 
 async def get_rate(client, pair):
     async with client.get(url=url_template.format(*pair)) as response:
         data = await response.json()
-        return (f'{translation[pair[0]]} -> {translation[pair[1]]}: '
-                + f'{data[pair[1]]}')
+        return {f'{pair[0]}_{pair[1]}': data[pair[1]]}
 
 
 async def rates(update, context):
@@ -80,7 +66,8 @@ async def rates(update, context):
         tasks.append(asyncio.create_task(
             get_rate(context.bot_data['client'], pair)))
     rates = await asyncio.gather(*tasks)
-    rates_text = '\n'.join(rates)
+    rates_text = rates_message.format(
+        **{key: value for _ in rates for key, value in _.items()})
     message = await context.bot.send_message(
         chat_id=chat.id,
         text=(rates_text),
