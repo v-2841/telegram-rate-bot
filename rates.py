@@ -10,7 +10,6 @@ from peewee_async import Manager, PostgresqlDatabase
 from telegram import ReplyKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
-import config
 from models import Message, User
 
 
@@ -34,22 +33,31 @@ logging.basicConfig(
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
-pairs = config.pairs
-url_template = config.url_template
-rates_message = config.rates_message
+url_template = ('https://cdn.jsdelivr.net/npm/@fawazahmed0/'
+                + 'currency-api@latest/v1/currencies/{}.json')
+currencies = ['eur', 'usd', 'rub', 'amd']
+rates_message = ('Курсы валют на {date} 💸\n\n'
+                 + 'Евро 🇪🇺 -> Доллар 🇺🇸: {eur_usd}\n\n'
+                 + 'Доллар 🇺🇸 -> Рубль 🇷🇺: {usd_rub}\n'
+                 + 'Евро 🇪🇺 -> Рубль 🇷🇺: {eur_rub}\n\n'
+                 + 'Драм 🇦🇲 -> Рубль 🇷🇺: {amd_rub}\n'
+                 + 'Рубль 🇷🇺 -> Драм 🇦🇲: {rub_amd}\n\n'
+                 + 'Доллар 🇺🇸 -> Драм 🇦🇲: {usd_amd}\n'
+                 + 'Евро 🇪🇺 -> Драм 🇦🇲: {eur_amd}'
+                 )
 
 
 async def get_date(client):
-    url = url_template.format(*pairs[0])
+    url = url_template.format(currencies[0])
     async with client.get(url) as response:
         data = await response.json()
         return {'date': data["date"]}
 
 
-async def get_rate(client, pair):
-    async with client.get(url=url_template.format(*pair)) as response:
+async def get_currency_rates(client, currency):
+    async with client.get(url=url_template.format(currency)) as response:
         data = await response.json()
-        return {f'{pair[0]}_{pair[1]}': data[pair[1]]}
+        return {f'{currency}': data[currency]}
 
 
 async def rates(update, context):
@@ -62,12 +70,23 @@ async def rates(update, context):
         text=update.message.text,
     )
     tasks = [asyncio.create_task(get_date(context.bot_data['client']))]
-    for pair in pairs:
+    for currency in currencies:
         tasks.append(asyncio.create_task(
-            get_rate(context.bot_data['client'], pair)))
+            get_currency_rates(context.bot_data['client'], currency)))
     rates = await asyncio.gather(*tasks)
+    dict_rates = {}
+    for _ in rates:
+        dict_rates.update(_)
     rates_text = rates_message.format(
-        **{key: value for _ in rates for key, value in _.items()})
+        date=dict_rates['date'],
+        eur_usd=dict_rates['eur']['usd'],
+        usd_rub=dict_rates['usd']['rub'],
+        eur_rub=dict_rates['eur']['rub'],
+        amd_rub=dict_rates['amd']['rub'],
+        rub_amd=dict_rates['rub']['amd'],
+        usd_amd=dict_rates['usd']['amd'],
+        eur_amd=dict_rates['eur']['amd'],
+    )
     message = await context.bot.send_message(
         chat_id=chat.id,
         text=(rates_text),
