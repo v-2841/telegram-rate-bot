@@ -60,5 +60,5 @@ class Message(Model):
 if __name__ == '__main__':
     db.connect()
     db.create_tables([Message, User])
-    User.create(id=0)
+    User.get_or_create(id=0)
     db.close()
