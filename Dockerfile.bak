@@ -1,0 +1,29 @@
+FROM python:3.13-slim AS base
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends pipx \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    POETRY_VIRTUALENVS_IN_PROJECT=true
+
+RUN pipx install "poetry>=2,<3"
+
+WORKDIR /app
+
+COPY pyproject.toml poetry.lock* /app/
+RUN /root/.local/bin/poetry install --only main
+
+
+FROM python:3.13-slim
+
+WORKDIR /app
+
+ENV PATH="/app/.venv/bin:${PATH}" \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+COPY . /app
+COPY --from=base /app/.venv /app/.venv
+
+CMD ["python", "rates.py"]
