@@ -18,7 +18,7 @@ FROM python:3.13-slim
 
 WORKDIR /app
 
-ENV PATH="/app/.venv/bin:${PATH}" \
+ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
