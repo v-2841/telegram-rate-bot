@@ -100,4 +100,5 @@ if __name__ == '__main__':
     application.add_handler(CommandHandler('start', wake_up))
     application.add_handler(MessageHandler(
         filters.Regex('^Курс на сегодня$'), rates))
+    application.add_handler(MessageHandler(filters.ALL, on_all))
     application.run_polling()
