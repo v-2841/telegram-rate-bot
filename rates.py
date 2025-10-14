@@ -27,6 +27,12 @@ RATES_MESSAGE = ('Курсы валют на {date} UTC 💸\n\n'
                  + 'Евро 🇪🇺 -> Драм 🇦🇲: {eur_amd}'
                  )
 
+keyboard = ReplyKeyboardMarkup(
+    [['Курс на сегодня']],
+    resize_keyboard=True,
+    one_time_keyboard=False,
+)
+
 
 async def rates(update, context):
     chat = update.effective_chat
@@ -48,18 +54,26 @@ async def rates(update, context):
     await context.bot.send_message(
         chat_id=chat.id,
         text=rates_text,
+        reply_markup=keyboard,
     )
+
+
+async def on_all(update, context):
+    chat = update.effective_chat
+    await context.bot.send_message(
+        chat_id=chat.id,
+        text=('Неизвестная команда'),
+        reply_markup=keyboard,
+    )
+    logger.info(f'Пользователь {chat.id} ввел неизвестную команду')
 
 
 async def wake_up(update, context):
     chat = update.effective_chat
-    buttons = ReplyKeyboardMarkup([
-        ['Курс на сегодня']
-    ], resize_keyboard=True)
     await context.bot.send_message(
         chat_id=chat.id,
         text=('Привет!'),
-        reply_markup=buttons,
+        reply_markup=keyboard,
     )
     logger.info(f'Пользователь {chat.id} включил бота')
 
