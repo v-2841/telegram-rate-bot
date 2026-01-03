@@ -23,6 +23,11 @@ const state = {
   updatedAt: null,
 };
 
+const refreshText = {
+  idle: "Обновить курсы",
+  loading: "Обновляю...",
+};
+
 const numberFormatter = new Intl.NumberFormat("ru-RU", {
   minimumFractionDigits: 2,
   maximumFractionDigits: 4,
@@ -48,6 +53,12 @@ function populateSelect(select, selectedValue) {
 
 function setStatus(message) {
   statusEl.textContent = message;
+}
+
+function setLoading(isLoading) {
+  refreshEl.disabled = isLoading;
+  refreshEl.classList.toggle("is-loading", isLoading);
+  refreshEl.textContent = isLoading ? refreshText.loading : refreshText.idle;
 }
 
 function setUpdatedAt(date) {
@@ -104,6 +115,8 @@ function updateResult() {
 }
 
 async function fetchRates() {
+  const requestTime = new Date();
+  setLoading(true);
   setStatus("Загружаю курсы...");
   try {
     const response = await fetch(apiUrl);
@@ -122,13 +135,17 @@ async function fetchRates() {
         : new Date();
     state.updatedAt = updated;
     setUpdatedAt(updated);
-    setStatus("Курсы обновлены");
+    setStatus(
+      `Курсы обновлены в ${requestTime.toLocaleTimeString("ru-RU")}`
+    );
     updateResult();
   } catch (error) {
     setStatus("Не удалось загрузить курсы. Попробуйте еще раз.");
     setUpdatedAt(null);
     resultEl.textContent = "-";
     rateEl.textContent = "Курс: -";
+  } finally {
+    setLoading(false);
   }
 }
 
