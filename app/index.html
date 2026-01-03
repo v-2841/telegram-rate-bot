@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Конвертер валют</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600&family=Space+Grotesk:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="hero">
+        <!-- <div class="badge">Telegram Mini App</div> -->
+        <h1>Конвертер валют</h1>
+        <p>Конвертируйте AMD, CNY, EUR, RUB и USD по актуальным курсам.</p>
+      </header>
+
+      <section class="panel">
+        <div class="row">
+          <label class="field">
+            <span>Сумма</span>
+            <input id="amount" type="number" min="0" step="0.01" value="1" />
+          </label>
+          <label class="field">
+            <span>Из</span>
+            <select id="from"></select>
+          </label>
+          <button id="swap" class="ghost" type="button">Поменять</button>
+          <label class="field">
+            <span>В</span>
+            <select id="to"></select>
+          </label>
+        </div>
+
+        <div class="result">
+          <div class="result-label">Результат</div>
+          <div id="result" class="result-value">-</div>
+          <div id="rate" class="rate">Курс: -</div>
+        </div>
+
+        <div class="actions">
+          <button id="refresh" type="button">Обновить курсы</button>
+          <span id="status" class="status">Загружаю курсы...</span>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <span>Источник курсов: openexchangerates.org</span>
+        <span id="updated">Последнее обновление: -</span>
+      </footer>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
