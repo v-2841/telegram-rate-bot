@@ -4,7 +4,7 @@ import os
 from datetime import datetime
 
 from aiohttp import ClientError, ClientSession, ClientTimeout
-from telegram import KeyboardButton, ReplyKeyboardMarkup, WebAppInfo
+from telegram import ReplyKeyboardMarkup
 from telegram.ext import (AIORateLimiter, Application, CommandHandler,
                           MessageHandler, filters)
 
@@ -31,30 +31,12 @@ RATES_MESSAGE = ('Курсы валют на {date} UTC 💸\n\n'
                  + 'Евро 🇪🇺 -> Драм 🇦🇲: {eur_amd}'
                  )
 
-DEFAULT_KEYBOARD = ReplyKeyboardMarkup(
+keyboard = ReplyKeyboardMarkup(
     [['Курс на сегодня']],
     resize_keyboard=True,
     one_time_keyboard=False,
     is_persistent=True,
 )
-
-
-def build_keyboard(web_app_url):
-    buttons = [[KeyboardButton('Курс на сегодня')]]
-    if web_app_url:
-        buttons[0].append(
-            KeyboardButton('Конвертер', web_app=WebAppInfo(url=web_app_url))
-        )
-    return ReplyKeyboardMarkup(
-        buttons,
-        resize_keyboard=True,
-        one_time_keyboard=False,
-        is_persistent=True,
-    )
-
-
-def get_keyboard(context):
-    return context.bot_data.get('keyboard', DEFAULT_KEYBOARD)
 
 
 async def rates(update, context):
@@ -74,7 +56,7 @@ async def rates(update, context):
         await context.bot.send_message(
             chat_id=chat.id,
             text='Не удалось получить курс. Попробуйте позже.',
-            reply_markup=get_keyboard(context),
+            reply_markup=keyboard,
         )
         return
     timestamp = datetime.fromtimestamp(timestamp_value)
@@ -93,7 +75,7 @@ async def rates(update, context):
     await context.bot.send_message(
         chat_id=chat.id,
         text=rates_text,
-        reply_markup=get_keyboard(context),
+        reply_markup=keyboard,
     )
 
 
@@ -102,7 +84,7 @@ async def on_all(update, context):
     await context.bot.send_message(
         chat_id=chat.id,
         text=('Неизвестная команда'),
-        reply_markup=get_keyboard(context),
+        reply_markup=keyboard,
     )
     logger.info(f'User {chat.id} entered an unknown command')
 
@@ -112,19 +94,15 @@ async def wake_up(update, context):
     await context.bot.send_message(
         chat_id=chat.id,
         text=('Привет!'),
-        reply_markup=get_keyboard(context),
+        reply_markup=keyboard,
     )
     logger.info(f'User {chat.id} started the bot')
 
 
 async def post_init(application: Application) -> None:
-    web_app_url = os.getenv('MINI_APP_URL')
-    application.bot_data['keyboard'] = build_keyboard(web_app_url)
     application.bot_data['client'] = ClientSession(
         timeout=ClientTimeout(total=10),
     )
-    if not web_app_url:
-        logger.warning('MINI_APP_URL is not set; mini app button disabled')
     logger.info('aiohttp client started')
 
 
